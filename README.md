@@ -2,6 +2,6 @@
 ## Quick access apk files for analyzing:
 https://github.com/ZHGZYANG/FlirApp-release
 
-### Change models fromapp/CameraDetected/line 151/152
+### Change models from app/CameraDetected:
 * line 151: Real Flir One Camera
 * line 152: Flir One Emulator
