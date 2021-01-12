@@ -5,9 +5,6 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.annotation.SuppressLint;
 import android.graphics.Bitmap;
-import android.graphics.Canvas;
-import android.graphics.Color;
-import android.graphics.Paint;
 import android.icu.text.SimpleDateFormat;
 import android.icu.util.Calendar;
 import android.icu.util.GregorianCalendar;
@@ -16,7 +13,6 @@ import android.os.Environment;
 import android.os.SystemClock;
 import android.util.Log;
 import android.view.View;
-import android.widget.Button;
 import android.widget.Chronometer;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -25,30 +21,23 @@ import android.widget.Toast;
 import com.flir.thermalsdk.ErrorCode;
 import com.flir.thermalsdk.androidsdk.live.connectivity.UsbPermissionHandler;
 import com.flir.thermalsdk.image.Rectangle;
-import com.flir.thermalsdk.image.TemperatureUnit;
 import com.flir.thermalsdk.image.ThermalImage;
 import com.flir.thermalsdk.live.Identity;
 import com.flir.thermalsdk.live.connectivity.ConnectionStatusListener;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
-import com.google.android.material.snackbar.Snackbar;
 
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Locale;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import ar.com.hjg.pngj.ImageInfo;
-import ar.com.hjg.pngj.ImageLineHelper;
-import ar.com.hjg.pngj.ImageLineInt;
-import ar.com.hjg.pngj.PngWriter;
-
 public class RecordProcess extends AppCompatActivity {
     private static final String TAG = "RecordProcess";
-
+    private static int count=0;
     //Handles Android permission for eg Network
     private PermissionHandler permissionHandler;
 
@@ -72,7 +61,7 @@ public class RecordProcess extends AppCompatActivity {
 
     private LinkedBlockingQueue<FrameDataHolder> framesBuffer = new LinkedBlockingQueue<>(21);
     private UsbPermissionHandler usbPermissionHandler = new UsbPermissionHandler();
-    private ThermalImage currentThermalImage;
+    protected static ThermalImage currentThermalImage;
 
     private VideoHandler videoHandlerIns;
 
@@ -298,6 +287,7 @@ public class RecordProcess extends AppCompatActivity {
         @Override
         public void images(Bitmap msxBitmap, Bitmap dcBitmap, ThermalImage thermalImage) throws IOException {
 //            currentThermalImage = thermalImage;
+
             try {
                 framesBuffer.put(new FrameDataHolder(msxBitmap, dcBitmap));
             } catch (InterruptedException e) {
@@ -319,47 +309,55 @@ public class RecordProcess extends AppCompatActivity {
                 photoCapture = false;
                 String state = Environment.getExternalStorageState();
                 if (state.equals(Environment.MEDIA_MOUNTED)) {
+
                     String imagePath = getImageName("photo");
-                    try {
 
 //                        thermalImage.setTemperatureUnit(TemperatureUnit.SIGNAL);
 //                        thermalImage.saveAs(imagePath);
-                        ///////END - MODEL 1
+                    ///////END - MODEL 1
 
-                        ///////START - MODEL 2 -- SAVE TO PNG WITH 16 BITS
+                    ///////START - MODEL 2 -- SAVE TO PNG WITH 16 BITS
 //                        ImageInfo imi = new ImageInfo(480, 640, 16, false,true,false);
 //                        File img=new File(imagePath);
 //                        PngWriter png = new PngWriter(img, imi);
 //                        ImageLineInt iline = new ImageLineInt(imi);
 
 
-                        /////// START - MODEL 3 -- SAVE TO TXT
-                        FileWriter file = new FileWriter(imagePath);
+                    /////// START - MODEL 3 -- SAVE TO TXT
+//                        FileWriter file = new FileWriter(imagePath);
+//                        for (int i = 0; i < 640; i++) {
+//                            double[] temperature = thermalImage.getValues(new Rectangle(0, i, 480, 1));
+                    double[] temperature = thermalImage.getValues(new Rectangle(0, 0, 480, 640));
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
 
+//                                FileWriter file = new FileWriter(imagePath);
+                                FileOutputStream file=new FileOutputStream(new File(imagePath));
+//                            file.write((Arrays.toString(temperature) + "\n"));
+                                file.write((handleDataForCSV(temperature) ).getBytes());
+//                                file.flush();
 
-                        for (int i = 0; i < 640; i++) {
-                            double[] temperature = thermalImage.getValues(new Rectangle(0, i, 480, 1));
-                            String result=Arrays.toString(temperature).replaceAll(" ","").replace("[","").replace("]","");
-
-                            file.write(result+"\n");
-                            file.flush();
-
-                            ///////// MODEL 3
-
+                                ///////// MODEL 3
 //                            int[] tempera={1,5};
 //                            ImageLineHelper.setPixelsRGBA8(iline,tempera);
 //                            png.writeRow(iline);
-                        }
-                        file.close();
+//                        }
+                                file.close();
 //                        png.end();
-                        runOnUiThread(() -> {
-                            showMessage.show("Photo Saved.");
-                        });
-                    } catch (Exception e) {
-                        runOnUiThread(() -> {
-                            showMessage.show("Save photo failed! " + e);
-                        });
-                    }
+                                runOnUiThread(() -> {
+                                    showMessage.show("Photo Saved.");
+                                });
+                            } catch (Exception e) {
+                                runOnUiThread(() -> {
+                                    showMessage.show("Save photo failed! " + e);
+                                });
+                            }
+
+                        }
+                    }).start();
+
                 } else {
                     runOnUiThread(() -> {
                         showMessage.show("Save photo failed! Media is not mounted.");
@@ -368,22 +366,59 @@ public class RecordProcess extends AppCompatActivity {
             }
 
             if (!videoRecordFinished && isVideoRecord) { //video record
+                count++;
+
                 String state = Environment.getExternalStorageState();
                 if (state.equals(Environment.MEDIA_MOUNTED)) {
-                    String videoPath = getImageName("video");
-                    try {
+                    double[] temperature = thermalImage.getValues(new Rectangle(0, 0, 480, 640));
+//                    String videoPath = getImageName("video");
+
+//                    thermalImage.saveAs(videoPath);
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                String videoPath = getImageName("video");
 //                        thermalImage.setTemperatureUnit(TemperatureUnit.SIGNAL);
-                        thermalImage.saveAs(videoPath);
-                    } catch (Exception e) {
-                        Log.d("error", "Save video failed! " + e);
-                    }
+//                        thermalImage.saveAs(videoPath);
+//                                FileWriter file = new FileWriter(videoPath);
+                                FileOutputStream file=new FileOutputStream(new File(videoPath));
+
+//                        for (int i = 0; i < 640; i++) {
+//                            double[] temperature = thermalImage.getValues(new Rectangle(0, i, 480, 1));
+                                file.write((handleDataForCSV(temperature) ).getBytes());
+//                                    file.write(handleDataForCSV(temperature) + "\n");
+                                file.flush();
+//                        }
+                                file.close();
+                            } catch (Exception e) {
+                                Log.d("error", "Save video failed! " + e);
+                                runOnUiThread(() -> {
+                                    showMessage.show("Save video failed! " + e);
+                                });
+
+                            }
+                        }
+                    }).start();
                 } else {
                     Log.d("error", "Save video failed! Media is not mounted.");
+                    runOnUiThread(() -> {
+                        showMessage.show("Save video failed! Media is not mounted.");
+                    });
+
                 }
 
             }
         }
     };
+
+    private String handleDataForCSV(double[] temperature) {
+//        for (int n = 0; n < temperature.length; n++) {
+//            BigDecimal b = new BigDecimal(temperature[n]);
+//            temperature[n] = b.setScale(3, BigDecimal.ROUND_HALF_UP).doubleValue();
+//        }
+        return Arrays.toString(temperature).replaceAll(" ", "").replace("[", "").replace("]", "");
+    }
 
     /**
      * Camera Discovery thermalImageStreamListener, is notified if a new camera was found during a active discovery phase
@@ -533,25 +568,52 @@ public class RecordProcess extends AppCompatActivity {
             timerStop();
             videoRecordFinished = true;
             isVideoRecord = false;
+            runOnUiThread(() -> {
+                showMessage.show("Video saving...");
+            });
+
 //            videoHandler2();
             // following: folder model
-            Calendar now = new GregorianCalendar();
-            SimpleDateFormat simpleDate = new SimpleDateFormat("yyyyMMddHHmmss", Locale.getDefault());
-            String fileName = simpleDate.format(now.getTime());
-            String oldDirName = Environment.getExternalStorageDirectory().getAbsolutePath() + "/flirapp/image/temp/";
-            String newDirName = Environment.getExternalStorageDirectory().getAbsolutePath() + "/flirapp/image/" + fileName + "/";
-            File oldDir = new File(oldDirName);
-            File newDir = new File(newDirName);
-            boolean success = oldDir.renameTo(newDir);
-            if (success) {
-                runOnUiThread(() -> {
-                    showMessage.show("Video Saved.");
-                });
-            } else {
-                runOnUiThread(() -> {
-                    showMessage.show("Save video faild! Error code: 90074"); // 90074: cannot rename folder
-                });
-            }
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        Thread.sleep(3000);
+                    } catch (InterruptedException e) {
+                        runOnUiThread(() -> {
+                            showMessage.show("Video Save failed. Error code: 99050");
+                        });
+                    }
+                    Calendar now = new GregorianCalendar();
+                    SimpleDateFormat simpleDate = new SimpleDateFormat("yyyyMMddHHmmss", Locale.getDefault());
+                    String fileName = simpleDate.format(now.getTime());
+                    String oldDirName = Environment.getExternalStorageDirectory().getAbsolutePath() + "/flirapp/image/temp/";
+                    String newDirName = Environment.getExternalStorageDirectory().getAbsolutePath() + "/flirapp/image/" + fileName + "/";
+                    File oldDir = new File(oldDirName);
+                    File newDir = new File(newDirName);
+                    boolean success = oldDir.renameTo(newDir);
+                    if (success) {
+//                        try {
+//                            FileWriter countfile=new FileWriter(getImageName("photo")+"count");
+//                            countfile.write(String.valueOf(count));
+//                            countfile.close();
+//                            count=0;
+//                        } catch (IOException e) {
+//                            e.printStackTrace();
+//                        }
+
+                        runOnUiThread(() -> {
+                            showMessage.show("Video Saved. "+count);
+                            count=0;
+                        });
+                    } else {
+                        runOnUiThread(() -> {
+                            showMessage.show("Save video faild! Error code: 90074"); // 90074: cannot rename folder
+                        });
+                    }
+                }
+            }).start();
+
         }
 
     }
