@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/dark"
+    android:orientation="vertical"
+    tools:context=".RecordProcess">
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <ImageView
+            android:id="@+id/msx_image"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:contentDescription="image with IR and visual data mixed" />
+
+        <ImageView
+            android:id="@+id/imageView12"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            app:srcCompat="@drawable/feetmack" />
+
+        <Chronometer
+            android:id="@+id/itimer"
+            android:layout_width="match_parent"
+            android:layout_height="69dp"
+            android:format="%s"
+            android:gravity="center"
+            android:textColor="@color/white"
+            android:textSize="40sp" />
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/floatingActionButton4"
+            android:layout_width="59dp"
+            android:layout_height="61dp"
+            android:layout_gravity="center|bottom"
+            android:layout_margin="16dp"
+            android:clickable="true"
+            app:backgroundTint="@color/red" />
+
+    </FrameLayout>
+
+</LinearLayout>
