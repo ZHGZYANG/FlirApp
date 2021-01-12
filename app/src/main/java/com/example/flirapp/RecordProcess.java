@@ -312,7 +312,6 @@ public class RecordProcess extends AppCompatActivity {
 
                     String imagePath = getImageName("photo");
 
-//                        thermalImage.setTemperatureUnit(TemperatureUnit.SIGNAL);
 //                        thermalImage.saveAs(imagePath);
                     ///////END - MODEL 1
 
@@ -324,7 +323,6 @@ public class RecordProcess extends AppCompatActivity {
 
 
                     /////// START - MODEL 3 -- SAVE TO TXT
-//                        FileWriter file = new FileWriter(imagePath);
 //                        for (int i = 0; i < 640; i++) {
 //                            double[] temperature = thermalImage.getValues(new Rectangle(0, i, 480, 1));
                     double[] temperature = thermalImage.getValues(new Rectangle(0, 0, 480, 640));
@@ -332,12 +330,11 @@ public class RecordProcess extends AppCompatActivity {
                         @Override
                         public void run() {
                             try {
-
 //                                FileWriter file = new FileWriter(imagePath);
                                 FileOutputStream file=new FileOutputStream(new File(imagePath));
 //                            file.write((Arrays.toString(temperature) + "\n"));
                                 file.write((handleDataForCSV(temperature) ).getBytes());
-//                                file.flush();
+                                file.flush();
 
                                 ///////// MODEL 3
 //                            int[] tempera={1,5};
@@ -371,17 +368,13 @@ public class RecordProcess extends AppCompatActivity {
                 String state = Environment.getExternalStorageState();
                 if (state.equals(Environment.MEDIA_MOUNTED)) {
                     double[] temperature = thermalImage.getValues(new Rectangle(0, 0, 480, 640));
-//                    String videoPath = getImageName("video");
+                    String videoPath = getImageName("video");
 
 //                    thermalImage.saveAs(videoPath);
                     new Thread(new Runnable() {
                         @Override
                         public void run() {
                             try {
-                                String videoPath = getImageName("video");
-//                        thermalImage.setTemperatureUnit(TemperatureUnit.SIGNAL);
-//                        thermalImage.saveAs(videoPath);
-//                                FileWriter file = new FileWriter(videoPath);
                                 FileOutputStream file=new FileOutputStream(new File(videoPath));
 
 //                        for (int i = 0; i < 640; i++) {
