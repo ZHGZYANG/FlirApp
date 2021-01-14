@@ -1,13 +1,11 @@
-# --coding=utf8--
+# encoding: utf-8
+
 """
 User Instruction:
 * Please put this file under FlirApp/image and then use the following command
 to run the code
-
 python csvupdate.py
-
 * Do not put files other than .csv into the folder
-
 """
 
 import os
@@ -20,11 +18,11 @@ def actionforcsv(filename):
         for details in content:
             if count<480:
                 count+=1
-                newcsv.write(details+',')
+                newcsv.write(details[0:5]+',')
                 continue
             if count==480:
                 count=1
-                newcsv.write(details + '\n')
+                newcsv.write(details[0:5] + '\n')
 
 root_path=os.getcwd()
 files=[item for item in os.listdir(root_path) if item[-2:]!="py"]
@@ -43,5 +41,3 @@ for folder in folders:
         actionforcsv(folder+'/'+i)
         os.remove(folder+'/'+i)
         print(i+' done.')
-
-
