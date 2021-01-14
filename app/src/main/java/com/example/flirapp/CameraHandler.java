@@ -65,16 +65,18 @@ import java.util.List;
  * <p/>
  * Please note, this is <b>NOT</b> production quality code, error handling has been kept to a minimum to keep the code as clear and concise as possible
  */
-class CameraHandler  {
+class CameraHandler {
 
     private static final String TAG = "CameraHandler";
 
 //    private ThermalImage currentThermalImage;
 
     private StreamDataListener streamDataListener;
+
     public interface StreamDataListener {
         void images(FrameDataHolder dataHolder);
-        void images(Bitmap msxBitmap, Bitmap dcBitmap,ThermalImage thermalImage) throws IOException;
+
+        void images(Bitmap msxBitmap, Bitmap dcBitmap, ThermalImage thermalImage) throws IOException;
     }
 
     //Discovered FLIR cameras
@@ -86,6 +88,7 @@ class CameraHandler  {
 
     public interface DiscoveryStatus {
         void started();
+
         void stopped();
     }
 
@@ -93,10 +96,9 @@ class CameraHandler  {
 
     }
 
-    protected Camera getCamera(){
+    protected Camera getCamera() {
         return this.camera;
     }
-
 
 
     /**
@@ -245,9 +247,9 @@ class CameraHandler  {
             Bitmap dcBitmap = BitmapAndroid.createBitmap(thermalImage.getFusion().getPhoto()).getBitMap();
 
 //            currentThermalImage=thermalImage;
-            Log.d(TAG,"adding images to cache");
+            Log.d(TAG, "adding images to cache");
             try {
-                streamDataListener.images(msxBitmap,dcBitmap,thermalImage);
+                streamDataListener.images(msxBitmap, dcBitmap, thermalImage);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -267,6 +269,17 @@ class CameraHandler  {
         }
         return true;
     }
+
+    public Integer batteryPercent() {
+        try {
+            RemoteControl remoteControl = camera.getRemoteControl();
+            Battery battery = remoteControl.getBattery();
+            return battery.percentage().getSync();
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+
 
 //    protected void capture(String path) throws IOException {
 //        currentThermalImage.getImage();

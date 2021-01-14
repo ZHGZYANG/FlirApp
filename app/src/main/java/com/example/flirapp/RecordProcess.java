@@ -5,6 +5,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.annotation.SuppressLint;
 import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.icu.text.SimpleDateFormat;
 import android.icu.util.Calendar;
 import android.icu.util.GregorianCalendar;
@@ -16,11 +17,13 @@ import android.view.View;
 import android.widget.Chronometer;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.flir.thermalsdk.ErrorCode;
 import com.flir.thermalsdk.androidsdk.live.connectivity.UsbPermissionHandler;
 import com.flir.thermalsdk.image.Rectangle;
+import com.flir.thermalsdk.image.TemperatureUnit;
 import com.flir.thermalsdk.image.ThermalImage;
 import com.flir.thermalsdk.live.Identity;
 import com.flir.thermalsdk.live.connectivity.ConnectionStatusListener;
@@ -37,7 +40,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 public class RecordProcess extends AppCompatActivity {
     private static final String TAG = "RecordProcess";
-    private static int count=0;
+    private static int count = 0;
     //Handles Android permission for eg Network
     private PermissionHandler permissionHandler;
 
@@ -50,6 +53,7 @@ public class RecordProcess extends AppCompatActivity {
     private ImageButton captureButton;
     private ImageView msxImage;
     private FloatingActionButton fab;
+    private TextView battery;
     //        private ImageView photoImage;
 //    private FrameDataHolder currentDataHolder; //for capture
 //    private Bitmap currentMsxBitmap;//for capture
@@ -82,7 +86,7 @@ public class RecordProcess extends AppCompatActivity {
         setupViews();
 
         permissionHandler.checkForStoragePermission();
-
+        batteryper.start();
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -90,6 +94,28 @@ public class RecordProcess extends AppCompatActivity {
             }
         }).start();
     }
+
+    Thread batteryper = new Thread(new Runnable() {
+        @SuppressLint("SetTextI18n")
+        @Override
+        public void run() {
+            while(true) {
+                Integer batteryResult = cameraHandler.batteryPercent();
+                battery.setText(batteryResult.toString()+"%");
+                if(batteryResult<25){
+                    battery.setTextColor(Color.RED);
+                    runOnUiThread(() -> {
+                    showMessage.show("Low battery! Please charge the camera!");
+                    });
+                }
+                try {
+                    Thread.sleep(300000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    });
 
     @Override
     protected void onStart() {
@@ -286,7 +312,8 @@ public class RecordProcess extends AppCompatActivity {
 
         @Override
         public void images(Bitmap msxBitmap, Bitmap dcBitmap, ThermalImage thermalImage) throws IOException {
-//            currentThermalImage = thermalImage;
+            thermalImage.setTemperatureUnit(TemperatureUnit.CELSIUS);
+            //            currentThermalImage = thermalImage;
 
             try {
                 framesBuffer.put(new FrameDataHolder(msxBitmap, dcBitmap));
@@ -331,9 +358,15 @@ public class RecordProcess extends AppCompatActivity {
                         public void run() {
                             try {
 //                                FileWriter file = new FileWriter(imagePath);
-                                FileOutputStream file=new FileOutputStream(new File(imagePath));
+                                FileOutputStream file = new FileOutputStream(new File(imagePath));
+//                                StringBuilder result= new StringBuilder();
+//                                for(int k=0;k<640;k++){
+//                                    double[] temp=Arrays.copyOfRange(temperature, k*480, (k*480)+479);
+//                                 result.append(Arrays.toString(temp).replaceAll(" ", "").replace("[", "").replace("]", "")).append("\n");
+//                                }
 //                            file.write((Arrays.toString(temperature) + "\n"));
-                                file.write((handleDataForCSV(temperature) ).getBytes());
+                                file.write((handleDataForCSV(temperature)).getBytes());
+//                                file.write((result.toString() ).getBytes());
                                 file.flush();
 
                                 ///////// MODEL 3
@@ -375,11 +408,19 @@ public class RecordProcess extends AppCompatActivity {
                         @Override
                         public void run() {
                             try {
-                                FileOutputStream file=new FileOutputStream(new File(videoPath));
+                                FileOutputStream file = new FileOutputStream(new File(videoPath));
+                                StringBuilder result = new StringBuilder();
+
+                                for (int k = 0; k < 640; k++) {
+                                    double[] temp = Arrays.copyOfRange(temperature, k * 480, (k * 480) + 479);
+                                    result.append(Arrays.toString(temp).replaceAll(" ", "").replace("[", "").replace("]", "")).append("\n");
+                                }
 
 //                        for (int i = 0; i < 640; i++) {
 //                            double[] temperature = thermalImage.getValues(new Rectangle(0, i, 480, 1));
-                                file.write((handleDataForCSV(temperature) ).getBytes());
+//                                file.write((handleDataForCSV(temperature) ).getBytes());
+                                file.write((result.toString()).getBytes());
+
 //                                    file.write(handleDataForCSV(temperature) + "\n");
                                 file.flush();
 //                        }
@@ -408,7 +449,7 @@ public class RecordProcess extends AppCompatActivity {
     private String handleDataForCSV(double[] temperature) {
 //        for (int n = 0; n < temperature.length; n++) {
 //            BigDecimal b = new BigDecimal(temperature[n]);
-//            temperature[n] = b.setScale(3, BigDecimal.ROUND_HALF_UP).doubleValue();
+//            temperature[n] = b.setScale(2, BigDecimal.ROUND_HALF_UP).doubleValue();
 //        }
         return Arrays.toString(temperature).replaceAll(" ", "").replace("[", "").replace("]", "");
     }
@@ -459,6 +500,7 @@ public class RecordProcess extends AppCompatActivity {
 //        photoImage = findViewById(R.id.photo_image);
 //        videoRecord = findViewById(R.id.videoRecord);
         fab = findViewById(R.id.floatingActionButton4);
+        battery = findViewById(R.id.battery);
     }
 
     protected String getImageName(String model) {
@@ -596,8 +638,8 @@ public class RecordProcess extends AppCompatActivity {
 //                        }
 
                         runOnUiThread(() -> {
-                            showMessage.show("Video Saved. "+count);
-                            count=0;
+                            showMessage.show("Video Saved. " + count);
+                            count = 0;
                         });
                     } else {
                         runOnUiThread(() -> {
