@@ -147,6 +147,10 @@ class CameraHandler {
         camera.unsubscribeStream(listener);
     }
 
+    protected void stop() {
+        stopStream(thermalImageStreamListener);
+    }
+
     /**
      * Add a found camera to the list of known cameras
      */
@@ -280,7 +284,10 @@ class CameraHandler {
         }
     }
 
-
+    protected void close() throws Exception {
+        camera.close();
+        camera=null;
+    }
 //    protected void capture(String path) throws IOException {
 //        currentThermalImage.getImage();
 //        saveAs(path);

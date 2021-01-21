@@ -25,8 +25,10 @@ import com.flir.thermalsdk.androidsdk.live.connectivity.UsbPermissionHandler;
 import com.flir.thermalsdk.image.Rectangle;
 import com.flir.thermalsdk.image.TemperatureUnit;
 import com.flir.thermalsdk.image.ThermalImage;
+import com.flir.thermalsdk.live.CommunicationInterface;
 import com.flir.thermalsdk.live.Identity;
 import com.flir.thermalsdk.live.connectivity.ConnectionStatusListener;
+import com.flir.thermalsdk.live.discovery.DiscoveryEventListener;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.io.File;
@@ -36,6 +38,8 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Locale;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.LinkedBlockingQueue;
 
 public class RecordProcess extends AppCompatActivity {
@@ -49,15 +53,10 @@ public class RecordProcess extends AppCompatActivity {
 
     private Identity connectedIdentity = null;
     private Chronometer itimer;
-    //    private Button videoRecord;
-    private ImageButton captureButton;
     private ImageView msxImage;
     private FloatingActionButton fab;
     private TextView battery;
-    //        private ImageView photoImage;
-//    private FrameDataHolder currentDataHolder; //for capture
-//    private Bitmap currentMsxBitmap;//for capture
-//        private Bitmap currentDcBitmap;//for capture
+    //    private FrameDataHolder currentDataHolder;
     private LinkedBlockingQueue<Bitmap> currentFramesBuffer = new LinkedBlockingQueue<>(100); //for video
     private boolean videoRecordFinished;
     private boolean isVideoRecord = false;
@@ -65,47 +64,33 @@ public class RecordProcess extends AppCompatActivity {
 
     private LinkedBlockingQueue<FrameDataHolder> framesBuffer = new LinkedBlockingQueue<>(21);
     private UsbPermissionHandler usbPermissionHandler = new UsbPermissionHandler();
-    protected static ThermalImage currentThermalImage;
 
-    private VideoHandler videoHandlerIns;
+//    private VideoHandler videoHandlerIns;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_record_process);
 
-//        ThermalLog.LogLevel enableLoggingInDebug = BuildConfig.DEBUG ? ThermalLog.LogLevel.DEBUG : ThermalLog.LogLevel.NONE;
-
-        //ThermalSdkAndroid has to be initiated from a Activity with the Application Context to prevent leaking Context,
-        // and before ANY using any ThermalSdkAndroid functions
-        //ThermalLog will show log from the Thermal SDK in standards android log framework
-//        ThermalSdkAndroid.init(getApplicationContext(), enableLoggingInDebug);
-
         permissionHandler = new PermissionHandler(showMessage, RecordProcess.this);
         cameraHandler = CameraDetected.cameraHandler;
         setupViews();
 
         permissionHandler.checkForStoragePermission();
-        batteryper.start();
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                cameraHandler.startStream(streamDataListener);
-            }
-        }).start();
+
     }
 
     Thread batteryper = new Thread(new Runnable() {
         @SuppressLint("SetTextI18n")
         @Override
         public void run() {
-            while(true) {
+            while (true) {
                 Integer batteryResult = cameraHandler.batteryPercent();
-                battery.setText(batteryResult.toString()+"%");
-                if(batteryResult<25){
+                battery.setText(batteryResult.toString() + "%");
+                if (batteryResult < 25) {
                     battery.setTextColor(Color.RED);
                     runOnUiThread(() -> {
-                    showMessage.show("Low battery! Please charge the camera!");
+                        showMessage.show("Low battery! Please charge the camera!");
                     });
                 }
                 try {
@@ -117,9 +102,47 @@ public class RecordProcess extends AppCompatActivity {
         }
     });
 
+
     @Override
-    protected void onStart() {
-        super.onStart();
+    public void onPause() {
+        super.onPause();
+        if (cameraHandler.getCamera() != null)
+            cameraHandler.stop();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+
+        if (cameraHandler.getCamera() != null) {
+            runOnUiThread(() -> {
+                cameraHandler.startStream(streamDataListener);
+            });
+            batteryper.start();
+
+        } else {
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    runOnUiThread(() -> {
+                        showMessage.show("We are reconnecting camera...");
+                    });
+                    startDiscovery();
+                    Timer timer = new Timer();
+                    TimerTask timerTask = new TimerTask() {
+                        @SuppressLint("SetTextI18n")
+                        @Override
+                        public void run() {
+//                        connect(cameraHandler.getFlirOne());
+                            connect(cameraHandler.getFlirOneEmulator());
+                        }
+                    };
+                    timer.schedule(timerTask, 1000 * 8);
+
+                }
+            }).start();
+        }
+
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -135,13 +158,16 @@ public class RecordProcess extends AppCompatActivity {
         });
 
     }
-//    public void startDiscovery(View view) {
-//        startDiscovery();
-//    }
-//
-//    public void stopDiscovery(View view) {
-//        stopDiscovery();
-//    }
+
+    @Override
+    public void onDestroy() {
+        stopDiscovery();
+        if (cameraHandler.getCamera() != null) {
+            disconnect();
+        }
+        super.onDestroy();
+
+    }
 
 
 //    public void connect(View view) {
@@ -168,11 +194,6 @@ public class RecordProcess extends AppCompatActivity {
      * Connect to a Camera
      */
     private void connect(Identity identity) {
-        if (connectedIdentity != null) {
-            Log.d(TAG, "connect(), in *this* code sample we only support one camera connection at the time");
-            showMessage.show("connect(), in *this* code sample we only support one camera connection at the time");
-            return;
-        }
 
         if (identity == null) {
             Log.d(TAG, "connect(), can't connect, no camera available");
@@ -213,6 +234,7 @@ public class RecordProcess extends AppCompatActivity {
                 runOnUiThread(() -> {
                     cameraHandler.startStream(streamDataListener);
                 });
+                batteryper.start();
             } catch (IOException e) {
                 runOnUiThread(() -> {
                     Log.d(TAG, "Could not connect: " + e);
@@ -226,57 +248,39 @@ public class RecordProcess extends AppCompatActivity {
      * Disconnect to a camera
      */
     private void disconnect() {
-//        updateConnectionText(connectedIdentity, "DISCONNECTING");
-        connectedIdentity = null;
         Log.d(TAG, "disconnect() called with: connectedIdentity = [" + connectedIdentity + "]");
+        connectedIdentity = null;
         new Thread(() -> {
             cameraHandler.disconnect();
-//            runOnUiThread(() -> {
-//                updateConnectionText(null, "DISCONNECTED");
-//            });
         }).start();
     }
 
     /**
-     * Update the UI text for connection status
-     */
-//    private void updateConnectionText(Identity identity, String status) {
-//        String deviceId = identity != null ? identity.deviceId : "";
-//        connectionStatus.setText(getString(R.string.connection_status_text, deviceId + " " + status));
-//    }
-
-    /**
      * Start camera discovery
      */
-//    private void startDiscovery() {
-//        cameraHandler.startDiscovery(cameraDiscoveryListener, discoveryStatusListener);
-//    }
+    private void startDiscovery() {
+        cameraHandler.startDiscovery(cameraDiscoveryListener, discoveryStatusListener);
+    }
 
     /**
      * Stop camera discovery
      */
-//    private void stopDiscovery() {
-//        cameraHandler.stopDiscovery(discoveryStatusListener);
-//    }
+    private void stopDiscovery() {
+        cameraHandler.stopDiscovery(discoveryStatusListener);
+    }
 
     /**
      * Callback for discovery status, using it to update UI
      */
-//    private CameraHandler.DiscoveryStatus discoveryStatusListener = new CameraHandler.DiscoveryStatus() {
-//        @Override
-//        public void started() {
-//            discoveryStatus.setText(getString(R.string.connection_status_text, "discovering"));
-//
-//        }
-//
-//        @Override
-//        public void stopped() {
-//            discoveryStatus.setText(getString(R.string.connection_status_text, "not discovering"));
-////            Intent intent = new Intent();
-////            intent.setClass(MainActivity.this, failure.class);
-////            startActivity(intent);
-//        }
-//    };
+    private CameraHandler.DiscoveryStatus discoveryStatusListener = new CameraHandler.DiscoveryStatus() {
+        @Override
+        public void started() {
+        }
+
+        @Override
+        public void stopped() {
+        }
+    };
 
     /**
      * Camera connecting state thermalImageStreamListener, keeps track of if the camera is connected or not
@@ -287,13 +291,6 @@ public class RecordProcess extends AppCompatActivity {
         @Override
         public void onDisconnected(@org.jetbrains.annotations.Nullable ErrorCode errorCode) {
             Log.d(TAG, "onDisconnected errorCode:" + errorCode);
-
-//            runOnUiThread(new Runnable() {
-//                @Override
-//                public void run() {
-////                    updateConnectionText(connectedIdentity, "DISCONNECTED");
-//                }
-//            });
         }
     };
 
@@ -305,7 +302,6 @@ public class RecordProcess extends AppCompatActivity {
                 @Override
                 public void run() {
                     msxImage.setImageBitmap(dataHolder.msxBitmap);
-//                    photoImage.setImageBitmap(dataHolder.dcBitmap);
                 }
             });
         }
@@ -313,7 +309,6 @@ public class RecordProcess extends AppCompatActivity {
         @Override
         public void images(Bitmap msxBitmap, Bitmap dcBitmap, ThermalImage thermalImage) throws IOException {
             thermalImage.setTemperatureUnit(TemperatureUnit.CELSIUS);
-            //            currentThermalImage = thermalImage;
 
             try {
                 framesBuffer.put(new FrameDataHolder(msxBitmap, dcBitmap));
@@ -328,7 +323,6 @@ public class RecordProcess extends AppCompatActivity {
                     Log.d(TAG, "framebuffer size:" + framesBuffer.size());
                     FrameDataHolder poll = framesBuffer.poll();
                     msxImage.setImageBitmap(poll.msxBitmap);
-//                    photoImage.setImageBitmap(poll.dcBitmap);
                 }
             });
 
@@ -339,55 +333,34 @@ public class RecordProcess extends AppCompatActivity {
 
                     String imagePath = getImageName("photo");
 
+//                    {
 //                        thermalImage.saveAs(imagePath);
                     ///////END - MODEL 1
+//                    }
+                    {
+                        /////// START - MODEL 2 -- SAVE TO CSV
+                        double[] temperature = thermalImage.getValues(new Rectangle(0, 0, 480, 640));
+                        new Thread(new Runnable() {
+                            @Override
+                            public void run() {
+                                try {
+                                    FileOutputStream file = new FileOutputStream(new File(imagePath));
+                                    file.write((handleDataForCSV(temperature)).getBytes());
+                                    file.flush();
 
-                    ///////START - MODEL 2 -- SAVE TO PNG WITH 16 BITS
-//                        ImageInfo imi = new ImageInfo(480, 640, 16, false,true,false);
-//                        File img=new File(imagePath);
-//                        PngWriter png = new PngWriter(img, imi);
-//                        ImageLineInt iline = new ImageLineInt(imi);
+                                    file.close();
+                                    runOnUiThread(() -> {
+                                        showMessage.show("Photo Saved.");
+                                    });
+                                } catch (Exception e) {
+                                    runOnUiThread(() -> {
+                                        showMessage.show("Save photo failed! " + e);
+                                    });
+                                }
 
-
-                    /////// START - MODEL 3 -- SAVE TO TXT
-//                        for (int i = 0; i < 640; i++) {
-//                            double[] temperature = thermalImage.getValues(new Rectangle(0, i, 480, 1));
-                    double[] temperature = thermalImage.getValues(new Rectangle(0, 0, 480, 640));
-                    new Thread(new Runnable() {
-                        @Override
-                        public void run() {
-                            try {
-//                                FileWriter file = new FileWriter(imagePath);
-                                FileOutputStream file = new FileOutputStream(new File(imagePath));
-//                                StringBuilder result= new StringBuilder();
-//                                for(int k=0;k<640;k++){
-//                                    double[] temp=Arrays.copyOfRange(temperature, k*480, (k*480)+479);
-//                                 result.append(Arrays.toString(temp).replaceAll(" ", "").replace("[", "").replace("]", "")).append("\n");
-//                                }
-//                            file.write((Arrays.toString(temperature) + "\n"));
-                                file.write((handleDataForCSV(temperature)).getBytes());
-//                                file.write((result.toString() ).getBytes());
-                                file.flush();
-
-                                ///////// MODEL 3
-//                            int[] tempera={1,5};
-//                            ImageLineHelper.setPixelsRGBA8(iline,tempera);
-//                            png.writeRow(iline);
-//                        }
-                                file.close();
-//                        png.end();
-                                runOnUiThread(() -> {
-                                    showMessage.show("Photo Saved.");
-                                });
-                            } catch (Exception e) {
-                                runOnUiThread(() -> {
-                                    showMessage.show("Save photo failed! " + e);
-                                });
                             }
-
-                        }
-                    }).start();
-
+                        }).start();
+                    }
                 } else {
                     runOnUiThread(() -> {
                         showMessage.show("Save photo failed! Media is not mounted.");
@@ -404,36 +377,32 @@ public class RecordProcess extends AppCompatActivity {
                     String videoPath = getImageName("video");
 
 //                    thermalImage.saveAs(videoPath);
-                    new Thread(new Runnable() {
-                        @Override
-                        public void run() {
-                            try {
-                                FileOutputStream file = new FileOutputStream(new File(videoPath));
-                                StringBuilder result = new StringBuilder();
+                    {
+                        new Thread(new Runnable() {
+                            @Override
+                            public void run() {
+                                try {
+                                    FileOutputStream file = new FileOutputStream(new File(videoPath));
+                                    StringBuilder result = new StringBuilder();
 
-                                for (int k = 0; k < 640; k++) {
-                                    double[] temp = Arrays.copyOfRange(temperature, k * 480, (k * 480) + 479);
-                                    result.append(Arrays.toString(temp).replaceAll(" ", "").replace("[", "").replace("]", "")).append("\n");
-                                }
-
-//                        for (int i = 0; i < 640; i++) {
-//                            double[] temperature = thermalImage.getValues(new Rectangle(0, i, 480, 1));
-//                                file.write((handleDataForCSV(temperature) ).getBytes());
-                                file.write((result.toString()).getBytes());
-
-//                                    file.write(handleDataForCSV(temperature) + "\n");
-                                file.flush();
+                                    for (int k = 0; k < 640; k++) {
+                                        double[] temp = Arrays.copyOfRange(temperature, k * 480, (k * 480) + 479);
+                                        result.append(Arrays.toString(temp).replaceAll(" ", "").replace("[", "").replace("]", "")).append("\n");
+                                    }
+                                    file.write((result.toString()).getBytes());
+                                    file.flush();
 //                        }
-                                file.close();
-                            } catch (Exception e) {
-                                Log.d("error", "Save video failed! " + e);
-                                runOnUiThread(() -> {
-                                    showMessage.show("Save video failed! " + e);
-                                });
+                                    file.close();
+                                } catch (Exception e) {
+                                    Log.d("error", "Save video failed! " + e);
+                                    runOnUiThread(() -> {
+                                        showMessage.show("Save video failed! " + e);
+                                    });
 
+                                }
                             }
-                        }
-                    }).start();
+                        }).start();
+                    }
                 } else {
                     Log.d("error", "Save video failed! Media is not mounted.");
                     runOnUiThread(() -> {
@@ -447,10 +416,6 @@ public class RecordProcess extends AppCompatActivity {
     };
 
     private String handleDataForCSV(double[] temperature) {
-//        for (int n = 0; n < temperature.length; n++) {
-//            BigDecimal b = new BigDecimal(temperature[n]);
-//            temperature[n] = b.setScale(2, BigDecimal.ROUND_HALF_UP).doubleValue();
-//        }
         return Arrays.toString(temperature).replaceAll(" ", "").replace("[", "").replace("]", "");
     }
 
@@ -459,31 +424,31 @@ public class RecordProcess extends AppCompatActivity {
      * <p>
      * Note that callbacks are received on a non-ui thread so have to eg use {@link #runOnUiThread(Runnable)} to interact view UI components
      */
-//    private DiscoveryEventListener cameraDiscoveryListener = new DiscoveryEventListener() {
-//        @Override
-//        public void onCameraFound(Identity identity) {
-//            Log.d(TAG, "onCameraFound identity:" + identity);
-//            runOnUiThread(new Runnable() {
-//                @Override
-//                public void run() {
-//                    cameraHandler.add(identity);
-//                }
-//            });
-//        }
-//
-//        @Override
-//        public void onDiscoveryError(CommunicationInterface communicationInterface, ErrorCode errorCode) {
-//            Log.d(TAG, "onDiscoveryError communicationInterface:" + communicationInterface + " errorCode:" + errorCode);
-//
-//            runOnUiThread(new Runnable() {
-//                @Override
-//                public void run() {
-//                    stopDiscovery();
-//                    RecordProcess.this.showMessage.show("onDiscoveryError communicationInterface:" + communicationInterface + " errorCode:" + errorCode);
-//                }
-//            });
-//        }
-//    };
+    private DiscoveryEventListener cameraDiscoveryListener = new DiscoveryEventListener() {
+        @Override
+        public void onCameraFound(Identity identity) {
+            Log.d(TAG, "onCameraFound identity:" + identity);
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    cameraHandler.add(identity);
+                }
+            });
+        }
+
+        @Override
+        public void onDiscoveryError(CommunicationInterface communicationInterface, ErrorCode errorCode) {
+            Log.d(TAG, "onDiscoveryError communicationInterface:" + communicationInterface + " errorCode:" + errorCode);
+
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    stopDiscovery();
+                    showMessage.show("onDiscoveryError communicationInterface:" + communicationInterface + " errorCode:" + errorCode);
+                }
+            });
+        }
+    };
 
     private ShowMessage showMessage = new ShowMessage() {
         @Override
@@ -495,10 +460,7 @@ public class RecordProcess extends AppCompatActivity {
 
     private void setupViews() {
         itimer = findViewById(R.id.itimer);
-//        captureButton = findViewById(R.id.imageButton);
         msxImage = findViewById(R.id.msx_image);
-//        photoImage = findViewById(R.id.photo_image);
-//        videoRecord = findViewById(R.id.videoRecord);
         fab = findViewById(R.id.floatingActionButton4);
         battery = findViewById(R.id.battery);
     }
@@ -526,80 +488,13 @@ public class RecordProcess extends AppCompatActivity {
     }
 
 
-//    public void capture(View view) {
-//        new Thread(new Runnable() {
-//            @SuppressLint("SetTextI18n")
-//            @Override
-//            public void run() {
-//                String state = Environment.getExternalStorageState();
-//                if (state.equals(Environment.MEDIA_MOUNTED)) {
-//                    String imagePath = getImageName("photo");
-//                    try {
-//                        currentThermalImage.saveAs(imagePath);
-//                        runOnUiThread(() -> {
-//                            showMessage.show("Saved");
-//                        });
-//                    } catch (Exception e) {
-//                        runOnUiThread(() -> {
-//                            showMessage.show("Save failed! " + e);
-//                        });
-//                    }
-//                } else {
-//                    runOnUiThread(() -> {
-//                        showMessage.show("Save failed! Media is not mounted.");
-//                    });
-//                }
-//            }
-//        }).start();
-//
-//    }
-
-//    private void captureForVideo() {
-//        new Thread(new Runnable() {
-//            @SuppressLint("SetTextI18n")
-//            @Override
-//            public void run() {
-//                String state = Environment.getExternalStorageState();
-//                if (state.equals(Environment.MEDIA_MOUNTED)) {
-//                    String videoPath = getImageName("video");
-//                    try {
-////                        File msxfile = new File(dirPath + fileName + ".png");
-////                        File dcfile=new File(dirPath + fileName + ".tiff");
-////                        FileOutputStream msxout = new FileOutputStream(msxfile);
-////                        FileOutputStream dcout = new FileOutputStream(dcfile);
-////                        currentMsxBitmap.compress(Bitmap.CompressFormat.PNG, 100, msxout);
-////                        currentDcBitmap.compress(Bitmap.CompressFormat.JPEG, 100, dcout);
-////                        msxout.flush();
-////                        msxout.close();
-////                        dcout.flush();
-////                        dcout.close();
-//
-////                        TiffSaver.SaveOptions options = new TiffSaver.SaveOptions();
-////                        boolean saved = TiffSaver.saveBitmap(dirPath + fileName + ".tif", currentMsxBitmap, options);
-//
-//                    } catch (Exception e) {
-//                        Log.d("error", "Save failed! " + e);
-//                    }
-//                } else {
-//                    Log.d("error", "Save failed! Media is not mounted.");
-//                }
-//            }
-//        }).start();
-//
-//    }
-
-
     @SuppressLint("SetTextI18n")
     public void video2(View view) {
-//        if (videoRecord.getText().equals("VIDEO RECORD")) { // record
         if (!isVideoRecord) {
-//            videoRecord.setText("STOP");
             isVideoRecord = true;
             videoRecordFinished = false;
             timerStart();
-//        } else if (videoRecord.getText().equals("STOP")) {
         } else {
-//            videoRecord.setText("VIDEO RECORD");
             timerStop();
             videoRecordFinished = true;
             isVideoRecord = false;
@@ -628,15 +523,6 @@ public class RecordProcess extends AppCompatActivity {
                     File newDir = new File(newDirName);
                     boolean success = oldDir.renameTo(newDir);
                     if (success) {
-//                        try {
-//                            FileWriter countfile=new FileWriter(getImageName("photo")+"count");
-//                            countfile.write(String.valueOf(count));
-//                            countfile.close();
-//                            count=0;
-//                        } catch (IOException e) {
-//                            e.printStackTrace();
-//                        }
-
                         runOnUiThread(() -> {
                             showMessage.show("Video Saved. " + count);
                             count = 0;
@@ -648,109 +534,42 @@ public class RecordProcess extends AppCompatActivity {
                     }
                 }
             }).start();
-
         }
-
     }
 
-//    @SuppressLint("SetTextI18n")
-//    public void video(View view) {
-//        if (videoRecord.getText().equals("VIDEO RECORD")) { // record
-//            videoRecord.setText("STOP");
-//            new Thread(new Runnable() {
-//                @Override
-//                public void run() {
-//                    String dirPath = Environment.getExternalStorageDirectory().getAbsolutePath() + "/flirapp/image/";
-//                    File dir = new File(dirPath);
-//                    if (!dir.exists()) {
-//                        dir.mkdirs();
-//                    }
-//                    String state = Environment.getExternalStorageState();
-//                    if (state.equals(Environment.MEDIA_MOUNTED)) {
-//                        Calendar now = new GregorianCalendar();
-//                        SimpleDateFormat simpleDate = new SimpleDateFormat("yyyyMMddHHmmss", Locale.getDefault());
-//                        String fileName = simpleDate.format(now.getTime());
-//                        videoRecordFinished = false;
-//                        timerStart();
-//                        try {
-//                            int result = videoHandler(dirPath + fileName + ".mp4");
-//                            runOnUiThread(() -> {
-//                                showMessage.show("Saved.");
-//                            });
-//                        } catch (InterruptedException e) {
-//                            runOnUiThread(() -> {
-//                                showMessage.show("Save failed. " + e);
-//                            });
-//                        }
-//                    } else {
+
+//    private void videoHandler2() {
+//        new Thread(new Runnable() {
+//            @Override
+//            public void run() {
+//                String dirPath = Environment.getExternalStorageDirectory().getAbsolutePath() + "/flirapp/image/";
+//                String state = Environment.getExternalStorageState();
+//                if (state.equals(Environment.MEDIA_MOUNTED)) {
+//                    Calendar now = new GregorianCalendar();
+//                    SimpleDateFormat simpleDate = new SimpleDateFormat("yyyyMMddHHmmss", Locale.getDefault());
+//                    String fileName = simpleDate.format(now.getTime());
+//                    ////
+//                    videoHandlerIns = new VideoHandler(dirPath + fileName + ".mp4");
+//                    try {
+//                        videoHandlerIns.pass(dirPath + "temp/");
+//                    } catch (IOException e) {
 //                        runOnUiThread(() -> {
-//                            showMessage.show("Save failed! Media is not mounted.");
+//                            showMessage.show("Save failed! " + e);
 //                        });
 //                    }
-//                }
-//            }).start();
-//        } else if (videoRecord.getText().equals("STOP")){
-//            videoRecord.setText("VIDEO RECORD");
-//            timerStop();
-//            videoRecordFinished = true;
-//            videoHandlerIns.finished();
-//
-//        }
-//    }
-
-    private void videoHandler2() {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                String dirPath = Environment.getExternalStorageDirectory().getAbsolutePath() + "/flirapp/image/";
-                String state = Environment.getExternalStorageState();
-                if (state.equals(Environment.MEDIA_MOUNTED)) {
-                    Calendar now = new GregorianCalendar();
-                    SimpleDateFormat simpleDate = new SimpleDateFormat("yyyyMMddHHmmss", Locale.getDefault());
-                    String fileName = simpleDate.format(now.getTime());
-                    ////
-                    videoHandlerIns = new VideoHandler(dirPath + fileName + ".mp4");
-                    try {
-                        videoHandlerIns.pass(dirPath + "temp/");
-                    } catch (IOException e) {
-                        runOnUiThread(() -> {
-                            showMessage.show("Save failed! " + e);
-                        });
-                    }
-                    ////
-                    runOnUiThread(() -> {
-                        showMessage.show("Saved.");
-                    });
-                } else {
-                    runOnUiThread(() -> {
-                        showMessage.show("Save failed! Media is not mounted.");
-                    });
-                }
-            }
-        }).start();
-    }
-
-    // do not be used
-//    private int videoHandler(String filePathName) throws InterruptedException {
-//        videoHandlerIns = new VideoHandler(filePathName);
-//        int count = 0,inited=0;
-//        Bitmap tmp=null;
-//        while (!videoRecordFinished) {
-//            if (!currentMsxBitmap.isRecycled() && !currentMsxBitmap.equals(tmp)) {
-//                tmp = currentMsxBitmap.copy(currentMsxBitmap.getConfig(), true);
-//                videoHandlerIns.pass(tmp);
-//                count++;
-//                if (count > 180 && inited==0) {
-//                    inited=1;
-//                    videoHandlerIns.init();
+//                    ////
+//                    runOnUiThread(() -> {
+//                        showMessage.show("Saved.");
+//                    });
+//                } else {
+//                    runOnUiThread(() -> {
+//                        showMessage.show("Save failed! Media is not mounted.");
+//                    });
 //                }
 //            }
-//        }
-////        runOnUiThread(() -> {
-////            showMessage.show("Preparing file...");
-////        });
-//        return 1;
+//        }).start();
 //    }
+
 
     public void timerStop() {
         itimer.stop();
