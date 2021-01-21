@@ -38,6 +38,7 @@ dependencies {
     implementation 'org.jetbrains:annotations-java5:15.0'
     implementation 'io.reactivex.rxjava2:rxandroid:2.0.2'
     implementation 'com.google.android.material:material:1.2.1'
+    implementation 'us.hebi.matlab.mat:mfl-core:0.5.6'
     implementation files('libs\\pngj-2.1.1.jar')
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'androidx.test.ext:junit:1.1.2'
