@@ -22,6 +22,7 @@ import android.widget.Toast;
 
 import com.flir.thermalsdk.ErrorCode;
 import com.flir.thermalsdk.androidsdk.live.connectivity.UsbPermissionHandler;
+import com.flir.thermalsdk.image.ImageParameters;
 import com.flir.thermalsdk.image.Rectangle;
 import com.flir.thermalsdk.image.TemperatureUnit;
 import com.flir.thermalsdk.image.ThermalImage;
@@ -34,9 +35,18 @@ import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Locale;
 import java.util.concurrent.LinkedBlockingQueue;
+
+import us.hebi.matlab.mat.format.Mat5;
+import us.hebi.matlab.mat.types.Array;
+import us.hebi.matlab.mat.types.Cell;
+import us.hebi.matlab.mat.types.MatFile;
+import us.hebi.matlab.mat.types.MatlabType;
+import us.hebi.matlab.mat.types.Matrix;
 
 public class RecordProcess extends AppCompatActivity {
     private static final String TAG = "RecordProcess";
@@ -66,7 +76,7 @@ public class RecordProcess extends AppCompatActivity {
     private LinkedBlockingQueue<FrameDataHolder> framesBuffer = new LinkedBlockingQueue<>(21);
     private UsbPermissionHandler usbPermissionHandler = new UsbPermissionHandler();
     protected static ThermalImage currentThermalImage;
-
+    static protected ArrayList<Matrix> matrices=new ArrayList<>();
     private VideoHandler videoHandlerIns;
 
     @Override
@@ -99,13 +109,13 @@ public class RecordProcess extends AppCompatActivity {
         @SuppressLint("SetTextI18n")
         @Override
         public void run() {
-            while(true) {
+            while (true) {
                 Integer batteryResult = cameraHandler.batteryPercent();
-                battery.setText(batteryResult.toString()+"%");
-                if(batteryResult<25){
+                battery.setText(batteryResult.toString() + "%");
+                if (batteryResult < 25) {
                     battery.setTextColor(Color.RED);
                     runOnUiThread(() -> {
-                    showMessage.show("Low battery! Please charge the camera!");
+                        showMessage.show("Low battery! Please charge the camera!");
                     });
                 }
                 try {
@@ -231,9 +241,9 @@ public class RecordProcess extends AppCompatActivity {
         Log.d(TAG, "disconnect() called with: connectedIdentity = [" + connectedIdentity + "]");
         new Thread(() -> {
             cameraHandler.disconnect();
-//            runOnUiThread(() -> {
-//                updateConnectionText(null, "DISCONNECTED");
-//            });
+            runOnUiThread(() -> {
+                showMessage.show("The camera has been disconnected due to long time hang on. Please reopen the app.");
+            });
         }).start();
     }
 
@@ -342,40 +352,69 @@ public class RecordProcess extends AppCompatActivity {
 //                        thermalImage.saveAs(imagePath);
                     ///////END - MODEL 1
 
-                    ///////START - MODEL 2 -- SAVE TO PNG WITH 16 BITS
-//                        ImageInfo imi = new ImageInfo(480, 640, 16, false,true,false);
-//                        File img=new File(imagePath);
-//                        PngWriter png = new PngWriter(img, imi);
-//                        ImageLineInt iline = new ImageLineInt(imi);
-
-
-                    /////// START - MODEL 3 -- SAVE TO TXT
-//                        for (int i = 0; i < 640; i++) {
-//                            double[] temperature = thermalImage.getValues(new Rectangle(0, i, 480, 1));
                     double[] temperature = thermalImage.getValues(new Rectangle(0, 0, 480, 640));
+//                    ImageParameters para=thermalImage.getImageParameters();
+//                    double airtemp=para.getAtmosphericTemperature();
+//                    double huminidy=para.getRelativeHumidity();
+//                    double distance=para.getDistance();
+//                    double emiss=para.getEmissivity();
+//                    double eoTemp=para.getExternalOpticsTemperature();
+//                    double eoTran=para.getExternalOpticsTransmission();
+//                    double rT=para.getReflectedTemperature();
+//                    double atran=para.getTransmission();
+
                     new Thread(new Runnable() {
                         @Override
                         public void run() {
                             try {
-//                                FileWriter file = new FileWriter(imagePath);
-                                FileOutputStream file = new FileOutputStream(new File(imagePath));
-//                                StringBuilder result= new StringBuilder();
-//                                for(int k=0;k<640;k++){
-//                                    double[] temp=Arrays.copyOfRange(temperature, k*480, (k*480)+479);
-//                                 result.append(Arrays.toString(temp).replaceAll(" ", "").replace("[", "").replace("]", "")).append("\n");
-//                                }
-//                            file.write((Arrays.toString(temperature) + "\n"));
-                                file.write((handleDataForCSV(temperature)).getBytes());
-//                                file.write((result.toString() ).getBytes());
-                                file.flush();
 
-                                ///////// MODEL 3
-//                            int[] tempera={1,5};
-//                            ImageLineHelper.setPixelsRGBA8(iline,tempera);
-//                            png.writeRow(iline);
-//                        }
-                                file.close();
-//                        png.end();
+//                                {
+//                                    FileOutputStream file = new FileOutputStream(new File(imagePath));
+//                                    StringBuilder result = new StringBuilder();
+//                                    for (int k = 0; k < 640; k++) {
+//                                        double[] temp = Arrays.copyOfRange(temperature, k * 480, (k * 480) + 479);
+//                                        result.append(Arrays.toString(temp).replaceAll(" ", "").replace("[", "").replace("]", "")).append("\n");
+//                                    }
+//                                    file.write((result.toString()).getBytes());
+//                                    file.flush();
+//                                    file.close();
+//                                }
+
+
+
+                                {
+                                    MatFile matFile = Mat5.newMatFile();
+                                    Matrix data=Mat5.newMatrix(480,640, MatlabType.Double);
+                                    int k=0;
+                                    for(int i=0;i<480;i++){
+                                        for(int j=0;j<640;j++){
+                                            data.setDouble(i,j,temperature[k++]);
+                                        }
+                                    }
+                                    matFile.addArray("temperature_Metrix",data);
+
+//                                    Cell cell=Mat5.newCell(1,30);
+//                                    cell.set(1,data);
+//                                    matFile.addArray("Air_Temp",Mat5.newScalar(airtemp));
+//                                    matFile.addArray("Reflected_Huminidy",Mat5.newScalar(huminidy));
+//                                    matFile.addArray("Distance",Mat5.newScalar(distance));
+//                                    matFile.addArray("Emissivity",Mat5.newScalar(emiss));
+//                                    matFile.addArray("External_Optics_Temp",Mat5.newScalar(eoTemp));
+//                                    matFile.addArray("External_Optics_Transmission",Mat5.newScalar(eoTran));
+//                                    matFile.addArray("Reflected_Temp",Mat5.newScalar(rT));
+//                                    matFile.addArray("Atmospheric_Transmission",Mat5.newScalar(atran));
+
+                                    Mat5.writeToFile(matFile, imagePath);
+
+                                }
+
+
+
+
+
+
+
+
                                 runOnUiThread(() -> {
                                     showMessage.show("Photo Saved.");
                                 });
@@ -401,37 +440,51 @@ public class RecordProcess extends AppCompatActivity {
                 String state = Environment.getExternalStorageState();
                 if (state.equals(Environment.MEDIA_MOUNTED)) {
                     double[] temperature = thermalImage.getValues(new Rectangle(0, 0, 480, 640));
-                    String videoPath = getImageName("video");
+//                    ImageParameters para=thermalImage.getImageParameters();
+//                    String videoPath = getImageName("video");
+//                    double airtemp=para.getAtmosphericTemperature();
+//                    double huminidy=para.getRelativeHumidity();
+//                    double distance=para.getDistance();
+//                    double emiss=para.getEmissivity();
+//                    double eoTemp=para.getExternalOpticsTemperature();
+//                    double eoTran=para.getExternalOpticsTransmission();
+//                    double rT=para.getReflectedTemperature();
+//                    double atran=para.getTransmission();
 
 //                    thermalImage.saveAs(videoPath);
                     new Thread(new Runnable() {
                         @Override
                         public void run() {
-                            try {
-                                FileOutputStream file = new FileOutputStream(new File(videoPath));
-                                StringBuilder result = new StringBuilder();
+//                            try {
 
-                                for (int k = 0; k < 640; k++) {
-                                    double[] temp = Arrays.copyOfRange(temperature, k * 480, (k * 480) + 479);
-                                    result.append(Arrays.toString(temp).replaceAll(" ", "").replace("[", "").replace("]", "")).append("\n");
+//                                MatFile matFile = Mat5.newMatFile();
+                                Matrix data=Mat5.newMatrix(480,640, MatlabType.Double);
+                                int k=0;
+                                for(int i=0;i<480;i++){
+                                    for(int j=0;j<640;j++){
+                                        data.setDouble(i,j,temperature[k++]);
+                                    }
                                 }
+                                matrices.add(data);
+//                                matFile.addArray("temperature_Metrix",data);
+//                                matFile.addArray("Air_Temp",Mat5.newScalar(airtemp));
+//                                matFile.addArray("Reflected_Huminidy",Mat5.newScalar(huminidy));
+//                                matFile.addArray("Distance",Mat5.newScalar(distance));
+//                                matFile.addArray("Emissivity",Mat5.newScalar(emiss));
+//                                matFile.addArray("External_Optics_Temp",Mat5.newScalar(eoTemp));
+//                                matFile.addArray("External_Optics_Transmission",Mat5.newScalar(eoTran));
+//                                matFile.addArray("Reflected_Temp",Mat5.newScalar(rT));
+//                                matFile.addArray("Atmospheric_Transmission",Mat5.newScalar(atran));
+//
+//                                Mat5.writeToFile(matFile, videoPath);
 
-//                        for (int i = 0; i < 640; i++) {
-//                            double[] temperature = thermalImage.getValues(new Rectangle(0, i, 480, 1));
-//                                file.write((handleDataForCSV(temperature) ).getBytes());
-                                file.write((result.toString()).getBytes());
 
-//                                    file.write(handleDataForCSV(temperature) + "\n");
-                                file.flush();
-//                        }
-                                file.close();
-                            } catch (Exception e) {
-                                Log.d("error", "Save video failed! " + e);
-                                runOnUiThread(() -> {
-                                    showMessage.show("Save video failed! " + e);
-                                });
-
-                            }
+//                            } catch (Exception e) {
+//                                Log.d("error", "Save video failed! " + e);
+//                                runOnUiThread(() -> {
+//                                    showMessage.show("Save video failed! " + e);
+//                                });
+//                            }
                         }
                     }).start();
                 } else {
@@ -446,13 +499,13 @@ public class RecordProcess extends AppCompatActivity {
         }
     };
 
-    private String handleDataForCSV(double[] temperature) {
+//    private String handleDataForCSV(double[] temperature) {
 //        for (int n = 0; n < temperature.length; n++) {
 //            BigDecimal b = new BigDecimal(temperature[n]);
 //            temperature[n] = b.setScale(2, BigDecimal.ROUND_HALF_UP).doubleValue();
 //        }
-        return Arrays.toString(temperature).replaceAll(" ", "").replace("[", "").replace("]", "");
-    }
+//        return Arrays.toString(temperature).replaceAll(" ", "").replace("[", "").replace("]", "");
+//    }
 
     /**
      * Camera Discovery thermalImageStreamListener, is notified if a new camera was found during a active discovery phase
@@ -512,13 +565,15 @@ public class RecordProcess extends AppCompatActivity {
         if (model.equals("photo")) {
             dirPath = Environment.getExternalStorageDirectory().getAbsolutePath() + "/flirapp/image/";
         } else {
-            dirPath = Environment.getExternalStorageDirectory().getAbsolutePath() + "/flirapp/image/temp/";
+//            dirPath = Environment.getExternalStorageDirectory().getAbsolutePath() + "/flirapp/image/temp/";
+            dirPath = Environment.getExternalStorageDirectory().getAbsolutePath() + "/flirapp/image/";
+            fileName+="_video";
         }
         File dir = new File(dirPath);
         if (!dir.exists()) {
             dir.mkdirs();
         }
-        return dirPath + fileName + ".csv";
+        return dirPath + fileName + ".mat";
     }
 
     public void capture(View view) {
@@ -638,9 +693,10 @@ public class RecordProcess extends AppCompatActivity {
 //                        }
 
                         runOnUiThread(() -> {
-                            showMessage.show("Video Saved. " + count);
+                            showMessage.show("Video Saved, but we are still getting everything ready... " + count);
                             count = 0;
                         });
+                        videoHandler3(newDirName); //combine to single .mat
                     } else {
                         runOnUiThread(() -> {
                             showMessage.show("Save video faild! Error code: 90074"); // 90074: cannot rename folder
@@ -697,6 +753,17 @@ public class RecordProcess extends AppCompatActivity {
 //
 //        }
 //    }
+
+
+    protected void videoHandler3(String dirName){
+        MatFile matFile = Mat5.newMatFile();
+        Matrix data=Mat5.newMatrix(480,640, MatlabType.Double);
+        matFile.addArray("temperature_Metrix",data);
+
+//        Mat5.writeToFile(matFile, videoPath);
+
+    }
+
 
     private void videoHandler2() {
         new Thread(new Runnable() {
