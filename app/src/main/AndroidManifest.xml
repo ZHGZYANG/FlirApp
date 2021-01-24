@@ -9,11 +9,12 @@
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
+        android:screenOrientation="portrait"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         android:requestLegacyExternalStorage="true">
-        <activity android:name=".EndPage"></activity>
+        <activity android:name=".EndPage"/>
         <activity android:name=".RecordProcess" />
         <activity android:name=".test" />
         <activity android:name=".CalibrationTimer" />

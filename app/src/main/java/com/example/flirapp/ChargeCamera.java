@@ -15,7 +15,7 @@ public class ChargeCamera extends AppCompatActivity {
 
 
     public void goReady(View view){
-        Intent intent = new Intent(ChargeCamera.this, CameraDetected.class);
+        Intent intent = new Intent(ChargeCamera.this, RecordProcess.class);
         startActivity(intent);
         ChargeCamera.this.finish();
     }

@@ -146,7 +146,9 @@ class CameraHandler {
     public void stopStream(ThermalImageStreamListener listener) {
         camera.unsubscribeStream(listener);
     }
-
+    protected void stop() {
+        stopStream(thermalImageStreamListener);
+    }
     /**
      * Add a found camera to the list of known cameras
      */
@@ -237,8 +239,8 @@ class CameraHandler {
             //Get a bitmap with only IR data
             Bitmap msxBitmap;
             {
-//                final List<Palette> palettes = PaletteManager.getDefaultPalettes();
-//                thermalImage.setPalette(palettes.get(10));
+                final List<Palette> palettes = PaletteManager.getDefaultPalettes();
+                thermalImage.setPalette(palettes.get(10));
                 thermalImage.getFusion().setFusionMode(FusionMode.THERMAL_ONLY);
                 msxBitmap = BitmapAndroid.createBitmap(thermalImage.getImage()).getBitMap();
             }

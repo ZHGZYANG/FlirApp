@@ -15,6 +15,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.flir.thermalsdk.ErrorCode;
+import com.flir.thermalsdk.androidsdk.BuildConfig;
 import com.flir.thermalsdk.androidsdk.ThermalSdkAndroid;
 import com.flir.thermalsdk.androidsdk.live.connectivity.UsbPermissionHandler;
 import com.flir.thermalsdk.live.CommunicationInterface;
@@ -39,8 +40,8 @@ public class CameraDetected extends AppCompatActivity {
 
     private Identity connectedIdentity = null;
     private TextView connectionStatus;
-    private TextView status;
-
+    private TextView readyText;
+    private ImageView readyImage;
     private ImageView msxImage;
     private ImageView photoImage;
 
@@ -148,8 +149,8 @@ public class CameraDetected extends AppCompatActivity {
                     @SuppressLint("SetTextI18n")
                     @Override
                     public void run() {
-//                        connect(cameraHandler.getFlirOne());
-                        connect(cameraHandler.getFlirOneEmulator());
+                        connect(cameraHandler.getFlirOne());
+//                        connect(cameraHandler.getFlirOneEmulator());
                     }
                 };
                 timer.schedule(timerTask, 1000 * 8);
@@ -164,8 +165,10 @@ public class CameraDetected extends AppCompatActivity {
 
                         runOnUiThread(()->{
                             if (connectReturnValue==0){
-                                Intent intent1 = new Intent(CameraDetected.this, RecordProcess.class);
+//                                Intent intent1 = new Intent(CameraDetected.this, RecordProcess.class);
+                                Intent intent1 = new Intent(CameraDetected.this, CalibrationTimer.class);
                                 startActivity(intent1);
+//                                CameraDetected.this.finish();
                             }else if (connectReturnValue==-1){ // low battery
                                 Intent intent2 = new Intent(CameraDetected.this, ChargeCamera.class);
                                 startActivity(intent2);
@@ -173,7 +176,7 @@ public class CameraDetected extends AppCompatActivity {
                             }else if (connectReturnValue==-2){ //IO exception
                                 Intent intent3 = new Intent(CameraDetected.this, WelcomeActivity.class);
                                 startActivity(intent3);
-//                                CameraDetected.this.finish();
+                                CameraDetected.this.finish();
                             }
                         });
 
@@ -231,21 +234,9 @@ public class CameraDetected extends AppCompatActivity {
     private void connect(Identity identity) {
         //We don't have to stop a discovery but it's nice to do if we have found the camera that we are looking for
         cameraHandler.stopDiscovery(discoveryStatusListener);
-        if (connectedIdentity != null) {
-            Log.d(TAG, "connect(), in *this* code sample we only support one camera connection at the time");
-//            CameraDetected.this.showMessage.show("connect(), in *this* code sample we only support one camera connection at the time");
-            status.setText("connect(), in *this* code sample we only support one camera connection at the time");
-            return;
-        }
-
         if (identity == null) {
             Log.d(TAG, "connect(), can't connect, no camera available");
-//            Log.d(TAG, "");
-//            CameraDetected.this.showMessage.show("connect(), can't connect, no camera available");
-            status.setText("connect(), can't connect, no camera available");
-            //            showMessage.show("");
-//            Intent intent1 = new Intent(CameraDetected.this, MainActivity.class);
-//            startActivity(intent1);
+            showMessage.show("connect(), can't connect, no camera available");
             return;
         }
 
@@ -256,14 +247,6 @@ public class CameraDetected extends AppCompatActivity {
         // you don't need to request permission, see documentation for more information
         if (UsbPermissionHandler.isFlirOne(identity)) {
             usbPermissionHandler.requestFlirOnePermisson(identity, this, permissionListener);
-        } else {
-            //the device is not flir one, replug-in
-//            CameraDetected.this.showMessage.show("the device is not flir one");
-            status.setText("the device is not flir one");
-//            Intent intent1 = new Intent(CameraDetected.this, MainActivity.class);
-//            startActivity(intent1);
-
-//            doConnect(identity);
         }
     }
 
@@ -272,7 +255,7 @@ public class CameraDetected extends AppCompatActivity {
         @Override
         public void permissionGranted(Identity identity) {
 //            CameraDetected.this.showMessage.show("usb permissionGranted");
-            status.setText("usb permissionGranted");
+//            status.setText("usb permissionGranted");
             doConnect(identity);
         }
 
@@ -289,26 +272,14 @@ public class CameraDetected extends AppCompatActivity {
 
     @SuppressLint("SetTextI18n")
     private void doConnect(Identity identity) {
-//        CameraDetected.this.showMessage.show("connecting");
-        status.setText("connecting");
-//        CameraDetected.this.showMessage.show(identity.toString());
-//        new Thread(() -> {
+        runOnUiThread(()->{
+            showMessage.show("connecting");
+        });
             try {
-//                CameraDetected.this.showMessage.show("connecting 2");
-                status.setText("connecting 2");
-
                 cameraHandler.connect(identity, connectionStatusListener);
-
                 runOnUiThread(() -> {
-//                    updateConnectionText(identity, "CONNECTED");
-//                    CameraDetected.this.showMessage.show("connected");
-                    status.setText("connected");
-
-//                    Intent intent2 = new Intent(CameraDetected.this, RecordProcess.class);
-//                    intent2.putExtra("camerahandler", (Parcelable) cameraHandler);
-//                    startActivity(intent2);
-
-//                    cameraHandler.startStream(streamDataListener);
+                    readyImage.setVisibility(View.VISIBLE);
+                    readyText.setVisibility(View.VISIBLE);
                 });
                 // judging battery
                 if (!cameraHandler.battery()) { //low battery and no charging
@@ -320,18 +291,10 @@ public class CameraDetected extends AppCompatActivity {
             } catch (IOException e) {
                 runOnUiThread(() -> {
                     Log.d(TAG, "Could not connect: " + e);
-//                    updateConnectionText(identity, "DISCONNECTED");
                     CameraDetected.this.showMessage.show("connecting failed. " + e);
-                    String strtemp="connecting failed. " + e;
-                    status.setText(strtemp);
-
-//                    Intent intent1 = new Intent(CameraDetected.this, MainActivity.class);
-//                    startActivity(intent1);
-
                 });
                 connectReturnValue=-2;
             }
-//        }).start();
     }
 
     /**
@@ -364,8 +327,7 @@ public class CameraDetected extends AppCompatActivity {
     private void startDiscovery() {
         cameraHandler.startDiscovery(cameraDiscoveryListener, discoveryStatusListener);
         runOnUiThread(()->{
-//            CameraDetected.this.showMessage.show("startDiscovery");
-            status.setText("startDiscovery");
+            showMessage.show("Start discovery");
         });
     }
 
@@ -502,8 +464,10 @@ public class CameraDetected extends AppCompatActivity {
 
     private void setupViews() {
 //        connectionStatus = findViewById(R.id.connection_status_text);
-        status = findViewById(R.id.textView11);
-
+        readyText = findViewById(R.id.textView11);
+        readyImage=findViewById(R.id.imageView3);
+        readyImage.setVisibility(View.INVISIBLE);
+        readyText.setVisibility(View.INVISIBLE);
 //        msxImage = findViewById(R.id.msx_image);
 //        photoImage = findViewById(R.id.photo_image);
     }
