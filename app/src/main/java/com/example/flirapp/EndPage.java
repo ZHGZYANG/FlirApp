@@ -10,5 +10,8 @@ public class EndPage extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_end_page);
+        CameraHandler cameraHandler = CameraDetected.cameraHandler;
+        cameraHandler.disconnect();
+
     }
 }

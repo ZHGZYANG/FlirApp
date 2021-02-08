@@ -14,14 +14,24 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         android:requestLegacyExternalStorage="true">
-        <activity android:name=".EndPage"/>
-        <activity android:name=".RecordProcess" />
-        <activity android:name=".test" />
-        <activity android:name=".CalibrationTimer" />
-        <activity android:name=".ChargeCamera" />
-        <activity android:name=".CameraDetected" />
-        <activity android:name=".DiscoverCamera" />
-        <activity android:name=".WelcomeActivity">
+        <activity android:name=".EndPage"
+            android:screenOrientation="portrait"/>
+        <activity android:name=".RecordProcess"
+            android:theme="@style/NoStatusTheme"
+            android:screenOrientation="portrait"/>
+        <activity android:name=".test"
+            android:screenOrientation="portrait"/>
+        <activity android:name=".CalibrationTimer"
+            android:screenOrientation="portrait"/>
+        <activity android:name=".ChargeCamera"
+            android:screenOrientation="portrait"/>
+        <activity android:name=".CameraDetected"
+            android:screenOrientation="portrait"/>
+        <activity android:name=".DiscoverCamera"
+            android:screenOrientation="portrait"/>
+        <activity android:name=".WelcomeActivity"
+            android:screenOrientation="portrait">
+
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -35,7 +45,8 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value=".MainActivity" />
         </activity>
-        <activity android:name=".MainActivity" />
+        <activity android:name=".MainActivity"
+            android:screenOrientation="portrait"/>
 
     </application>
 

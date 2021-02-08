@@ -4,6 +4,7 @@ package com.example.flirapp;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.annotation.SuppressLint;
+import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.graphics.Bitmap;
 import android.graphics.Color;
@@ -70,7 +71,7 @@ public class RecordProcess extends AppCompatActivity {
     private LinkedBlockingQueue<Bitmap> currentFramesBuffer = new LinkedBlockingQueue<>(100); //for video
     //    private boolean videoRecordFinished;
     private boolean isVideoRecord = false;
-    private boolean photoCapture=false;
+    private boolean photoCapture = false;
     protected boolean batteryperWait = false;
     protected boolean validationPassed = false;
     private LinkedBlockingQueue<FrameDataHolder> framesBuffer = new LinkedBlockingQueue<>(21);
@@ -149,7 +150,7 @@ public class RecordProcess extends AppCompatActivity {
                         @SuppressLint("SetTextI18n")
                         @Override
                         public void run() {
-                        connect(cameraHandler.getFlirOne());
+                            connect(cameraHandler.getFlirOne());
 //                            connect(cameraHandler.getFlirOneEmulator());
                         }
                     };
@@ -263,9 +264,9 @@ public class RecordProcess extends AppCompatActivity {
     private void disconnect() {
         Log.d(TAG, "disconnect() called with: connectedIdentity = [" + connectedIdentity + "]");
         connectedIdentity = null;
-        new Thread(() -> {
-            cameraHandler.disconnect();
-        }).start();
+//        new Thread(() -> {
+//            cameraHandler.disconnect();
+//        }).start();
     }
 
     /**
@@ -382,10 +383,10 @@ public class RecordProcess extends AppCompatActivity {
             double tempRightP3 = thermalImage.getValueAt(new Point(377, 330)) - tempOutside;
 
             if (tempLeftP1 > 2 && tempLeftP2 > 2 && tempLeftP3 > 2 && tempRightP1 > 2 && tempRightP2 > 2 && tempRightP3 > 2) {
-                validationPassed = true;
-                runOnUiThread(() -> {
-                    fab.setVisibility(View.VISIBLE);
-                });
+            validationPassed = true;
+            runOnUiThread(() -> {
+                fab.setVisibility(View.VISIBLE);
+            });
             } else {
                 validationPassed = false;
                 runOnUiThread(() -> {
@@ -552,7 +553,7 @@ public class RecordProcess extends AppCompatActivity {
         itimer = findViewById(R.id.itimer);
         msxImage = findViewById(R.id.msx_image);
         fab = findViewById(R.id.floatingActionButton4);
-        runOnUiThread(()->{
+        runOnUiThread(() -> {
             fab.setVisibility(View.INVISIBLE);
         });
         battery = findViewById(R.id.battery);
@@ -614,12 +615,20 @@ public class RecordProcess extends AppCompatActivity {
                         runOnUiThread(() -> {
                             showMessage.show("Video Saved!" + count);
                             count = 0;
+
+//                            Timer timer = new Timer();
+//                            TimerTask timerTask = new TimerTask() {
+//                                @Override
+//                                public void run() {
+//                                    Intent intent1 = new Intent(RecordProcess.this, EndPage.class);
+//                                    disconnect();
+//                                    startActivity(intent1);
+//                                }
+//                            };
+//                            timer.schedule(timerTask, 1000 * 3);
+
+
                         });
-
-
-//                        Intent intent1 = new Intent(RecordProcess.this, EndPage.class);
-//                        disconnect();
-//                        startActivity(intent1);
 
                     } catch (IOException e) {
                         runOnUiThread(() -> {

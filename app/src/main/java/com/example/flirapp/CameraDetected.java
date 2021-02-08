@@ -47,9 +47,8 @@ public class CameraDetected extends AppCompatActivity {
 
     private LinkedBlockingQueue<FrameDataHolder> framesBuffer = new LinkedBlockingQueue(21);
     private UsbPermissionHandler usbPermissionHandler = new UsbPermissionHandler();
-    private int connectReturnValue;
-
-
+    //    private int connectReturnValue;
+    static private boolean connected = false;
 
     @SuppressLint("SetTextI18n")
     @Override
@@ -105,91 +104,51 @@ public class CameraDetected extends AppCompatActivity {
 //        }).start();
 
 
-
-
-
     }
-
-//    @Override
-//    protected void onResume() {
-//
-//        super.onResume();
-//        connectReturnValue=-10;
-//        new Thread(new Runnable() {
-//            @Override
-//            public void run() {
-//                startDiscovery();
-//
-//                Timer timer = new Timer();
-//                TimerTask timerTask = new TimerTask() {
-//                    @Override
-//                    public void run() {
-//                        connect(cameraHandler.getFlirOne());
-//                    }
-//                };
-//                timer.schedule(timerTask, 1000 * 8);
-//
-//            }
-//        }).start();
-//
-//    }
 
 
     @Override
     protected void onStart() {
         super.onStart();
-        connectReturnValue=-10;
+//        connectReturnValue = -10;
         new Thread(new Runnable() {
             @Override
             public void run() {
-                startDiscovery();
+                while (connectedIdentity == null && !connected) {
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            startDiscovery();
+                        }
+                    }).start();
 
-                Timer timer = new Timer();
-                TimerTask timerTask = new TimerTask() {
-                    @SuppressLint("SetTextI18n")
-                    @Override
-                    public void run() {
-                        connect(cameraHandler.getFlirOne());
+                    try {
+                        Thread.sleep(1000 * 11);
+                    } catch (InterruptedException e) {
+                        Log.d(TAG, "Resume Sleep error " + e);
+                    }
+
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            connect(cameraHandler.getFlirOne());
 //                        connect(cameraHandler.getFlirOneEmulator());
+                        }
+                    }).start();
+
+
+                    try {
+                        Thread.sleep(1000 * 5);
+                    } catch (InterruptedException e) {
+                        Log.d(TAG, "Resume Sleep error " + e);
                     }
-                };
-                timer.schedule(timerTask, 1000 * 8);
-
-
-
-                Timer intimer = new Timer();
-                TimerTask intimerTask = new TimerTask() {
-                    @SuppressLint("SetTextI18n")
-                    @Override
-                    public void run() {
-
-                        runOnUiThread(()->{
-                            if (connectReturnValue==0){
-//                                Intent intent1 = new Intent(CameraDetected.this, RecordProcess.class);
-                                Intent intent1 = new Intent(CameraDetected.this, CalibrationTimer.class);
-                                startActivity(intent1);
-//                                CameraDetected.this.finish();
-                            }else if (connectReturnValue==-1){ // low battery
-                                Intent intent2 = new Intent(CameraDetected.this, ChargeCamera.class);
-                                startActivity(intent2);
-//                                CameraDetected.this.finish();
-                            }else if (connectReturnValue==-2){ //IO exception
-                                Intent intent3 = new Intent(CameraDetected.this, WelcomeActivity.class);
-                                startActivity(intent3);
-                                CameraDetected.this.finish();
-                            }
-                        });
-
-
-                    }
-                };
-                intimer.schedule(intimerTask, 1000 * 12);
+                }
 
             }
+
         }).start();
 
     }
-
 
 
 //    public void startDiscovery(View view) {
@@ -236,12 +195,17 @@ public class CameraDetected extends AppCompatActivity {
         cameraHandler.stopDiscovery(discoveryStatusListener);
         if (identity == null) {
             Log.d(TAG, "connect(), can't connect, no camera available");
-            showMessage.show("connect(), can't connect, no camera available");
+            runOnUiThread(() -> {
+                showMessage.show("Can't connect, no camera available!");
+            });
             return;
         }
+        runOnUiThread(() -> {
+            showMessage.show("connecting");
+        });
 
         connectedIdentity = identity;
-
+        connected = true;
 //        updateConnectionText(identity, "CONNECTING");
         //IF your using "USB_DEVICE_ATTACHED" and "usb-device vendor-id" in the Android Manifest
         // you don't need to request permission, see documentation for more information
@@ -261,40 +225,49 @@ public class CameraDetected extends AppCompatActivity {
 
         @Override
         public void permissionDenied(Identity identity) {
+            connected = false;
             CameraDetected.this.showMessage.show("Permission was denied for identity ");
         }
 
         @Override
         public void error(UsbPermissionHandler.UsbPermissionListener.ErrorType errorType, final Identity identity) {
+            connected = false;
             CameraDetected.this.showMessage.show("Error when asking for permission for FLIR ONE, error:" + errorType + " identity:" + identity);
         }
     };
 
     @SuppressLint("SetTextI18n")
     private void doConnect(Identity identity) {
-        runOnUiThread(()->{
-            showMessage.show("connecting");
-        });
-            try {
-                cameraHandler.connect(identity, connectionStatusListener);
+        try {
+            cameraHandler.connect(identity, connectionStatusListener);
+            runOnUiThread(() -> {
+                readyImage.setVisibility(View.VISIBLE);
+                readyText.setVisibility(View.VISIBLE);
+            });
+            // judging battery
+            if (!cameraHandler.battery()) { //low battery and no charging
+//                connectReturnValue = -1;
+//                return;
                 runOnUiThread(() -> {
-                    readyImage.setVisibility(View.VISIBLE);
-                    readyText.setVisibility(View.VISIBLE);
+                    Intent intent2 = new Intent(CameraDetected.this, ChargeCamera.class);
+                    startActivity(intent2);
                 });
-                // judging battery
-                if (!cameraHandler.battery()) { //low battery and no charging
-                    connectReturnValue=-1;
-                    return;
-                }
-                connectReturnValue=0;
-
-            } catch (IOException e) {
-                runOnUiThread(() -> {
-                    Log.d(TAG, "Could not connect: " + e);
-                    CameraDetected.this.showMessage.show("connecting failed. " + e);
-                });
-                connectReturnValue=-2;
             }
+//            connectReturnValue = 0;
+            runOnUiThread(() -> {
+                Intent intent1 = new Intent(CameraDetected.this, CalibrationTimer.class);
+                startActivity(intent1);
+            });
+        } catch (IOException e) {
+            runOnUiThread(() -> {
+                Log.d(TAG, "Could not connect: " + e);
+                CameraDetected.this.showMessage.show("connecting failed. " + e);
+                Intent intent3 = new Intent(CameraDetected.this, WelcomeActivity.class);
+                startActivity(intent3);
+                CameraDetected.this.finish();
+            });
+//            connectReturnValue = -2;
+        }
     }
 
     /**
@@ -326,7 +299,7 @@ public class CameraDetected extends AppCompatActivity {
     @SuppressLint("SetTextI18n")
     private void startDiscovery() {
         cameraHandler.startDiscovery(cameraDiscoveryListener, discoveryStatusListener);
-        runOnUiThread(()->{
+        runOnUiThread(() -> {
             showMessage.show("Start discovery");
         });
     }
@@ -449,7 +422,7 @@ public class CameraDetected extends AppCompatActivity {
         @Override
         public void show(String message) {
 //            Toast.makeText(CameraDetected.this, message, Toast.LENGTH_LONG).show();
-            final Toast toast =  Toast.makeText(CameraDetected.this, message, Toast.LENGTH_LONG);
+            final Toast toast = Toast.makeText(CameraDetected.this, message, Toast.LENGTH_LONG);
             toast.show();
         }
 
@@ -465,7 +438,7 @@ public class CameraDetected extends AppCompatActivity {
     private void setupViews() {
 //        connectionStatus = findViewById(R.id.connection_status_text);
         readyText = findViewById(R.id.textView11);
-        readyImage=findViewById(R.id.imageView3);
+        readyImage = findViewById(R.id.imageView3);
         readyImage.setVisibility(View.INVISIBLE);
         readyText.setVisibility(View.INVISIBLE);
 //        msxImage = findViewById(R.id.msx_image);

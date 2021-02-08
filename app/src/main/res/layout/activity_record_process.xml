@@ -13,16 +13,6 @@
         android:layout_height="match_parent">
 
 
-
-        <TextView
-            android:id="@+id/battery"
-            android:layout_width="match_parent"
-            android:layout_height="69dp"
-            android:gravity="end"
-            android:text="95%"
-            android:textColor="@color/white"
-            android:textSize="20sp" />
-
         <ImageView
             android:id="@+id/msx_image"
             android:layout_width="match_parent"
@@ -33,57 +23,85 @@
             android:id="@+id/imageView12"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:rotation="-180"
             android:layout_weight="1"
             app:srcCompat="@drawable/feetmack" />
-
-        <Chronometer
-            android:id="@+id/itimer"
-            android:layout_width="match_parent"
-            android:layout_height="69dp"
-            android:format="%s"
-            android:gravity="center"
-            android:textColor="@color/white"
-            android:textSize="40sp" />
-
-        <com.google.android.material.floatingactionbutton.FloatingActionButton
-            android:id="@+id/floatingActionButton4"
-            android:layout_width="59dp"
-            android:layout_height="61dp"
-            android:layout_gravity="center|bottom"
-            android:layout_margin="16dp"
-            android:clickable="true"
-            app:backgroundTint="@color/red" />
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent">
 
             <TextView
+                android:id="@+id/battery"
+                android:layout_width="match_parent"
+                android:layout_height="69dp"
+                android:gravity="end"
+                android:rotation="-180"
+                android:text="95%"
+                android:textColor="@color/white"
+                android:textSize="20sp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintHorizontal_bias="0.0"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintVertical_bias="0.97" />
+
+            <Chronometer
+                android:id="@+id/itimer"
+                android:layout_width="match_parent"
+                android:layout_height="69dp"
+                android:layout_marginBottom="16dp"
+                android:format="%s"
+                android:gravity="center"
+                android:rotation="-180"
+                android:textColor="@color/white"
+                android:textSize="40sp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent" />
+
+            <TextView
                 android:id="@+id/templeft"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="40dp"
+                android:layout_marginStart="44dp"
+                android:rotation="-180"
                 android:text="36.00°C"
                 android:textColor="@color/white"
                 android:textSize="40sp"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintVertical_bias="0.169" />
+                app:layout_constraintVertical_bias="0.843" />
 
             <TextView
                 android:id="@+id/tempright"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:rotation="-180"
                 android:text="36.00°C"
                 android:textColor="@color/white"
                 android:textSize="40sp"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintHorizontal_bias="0.45"
+                app:layout_constraintHorizontal_bias="0.458"
                 app:layout_constraintStart_toEndOf="@+id/templeft"
                 app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintVertical_bias="0.169" />
+                app:layout_constraintVertical_bias="0.843" />
+
+            <com.google.android.material.floatingactionbutton.FloatingActionButton
+                android:id="@+id/floatingActionButton4"
+                android:layout_width="59dp"
+                android:layout_height="61dp"
+                android:layout_gravity="center|bottom"
+                android:layout_margin="16dp"
+                android:layout_marginTop="16dp"
+                android:clickable="true"
+                app:backgroundTint="@color/red"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
         </androidx.constraintlayout.widget.ConstraintLayout>
 
 

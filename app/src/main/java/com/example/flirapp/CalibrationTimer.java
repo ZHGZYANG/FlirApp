@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.SystemClock;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.Chronometer;
 
@@ -17,6 +18,7 @@ public class CalibrationTimer extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_calibration_timer);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         warmtimer = findViewById(R.id.warmtimer);
         button995=findViewById(R.id.button995);
     }
@@ -30,6 +32,18 @@ public class CalibrationTimer extends AppCompatActivity {
 //        warmtimer.setBase(SystemClock.elapsedRealtime() + 10000);
 
         warmtimer.start();
+    }
+
+    public void go(View view){
+        warmtimer.stop();
+        Intent intent1 = new Intent(CalibrationTimer.this, RecordProcess.class);
+        startActivity(intent1);
+        finish();
+    }
+    @Override
+    public void onResume() {
+
+        super.onResume();
         warmtimer.setOnChronometerTickListener(new Chronometer.OnChronometerTickListener() {
             @Override
             public void onChronometerTick(Chronometer chronometer) {
@@ -41,12 +55,16 @@ public class CalibrationTimer extends AppCompatActivity {
                 }
             }
         });
-    }
 
-    public void go(View view){
-        warmtimer.stop();
-        Intent intent1 = new Intent(CalibrationTimer.this, RecordProcess.class);
-        startActivity(intent1);
-        finish();
+    }
+    @Override
+    public void onStop() {
+
+        super.onStop();
+    }
+    @Override
+    public void onPause() {
+
+        super.onPause();
     }
 }

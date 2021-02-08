@@ -34,15 +34,18 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-//        Timer timer = new Timer();
-//        TimerTask timerTask = new TimerTask() {
-//            @Override
-//            public void run() {
+        Timer timer = new Timer();
+        TimerTask timerTask = new TimerTask() {
+            @Override
+            public void run() {
+                Intent intent = new Intent(MainActivity.this, DiscoverCamera.class);
+                startActivity(intent);
+
 //                MainActivity.this.finish();
-//            }
-//        };
-//        timer.schedule(timerTask, 1000*3);
-//
+            }
+        };
+        timer.schedule(timerTask, 1000*5);
+
 
     }
 
