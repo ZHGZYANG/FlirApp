@@ -11,13 +11,22 @@ import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.Chronometer;
 
+import com.flir.thermalsdk.live.remote.Property;
+
+import java.util.Timer;
+import java.util.TimerTask;
+
 public class CalibrationTimer extends AppCompatActivity {
+    private CameraHandler cameraHandler;
+
     private Chronometer warmtimer;
     private Button button995;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_calibration_timer);
+        cameraHandler = CameraDetected.cameraHandler;
+
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         warmtimer = findViewById(R.id.warmtimer);
         button995=findViewById(R.id.button995);
@@ -32,6 +41,16 @@ public class CalibrationTimer extends AppCompatActivity {
 //        warmtimer.setBase(SystemClock.elapsedRealtime() + 10000);
 
         warmtimer.start();
+
+        Timer timer = new Timer();
+        TimerTask timerTask = new TimerTask() {
+            @Override
+            public void run() {
+                cameraHandler.calibration();
+            }
+        };
+//        timer.schedule(timerTask, 1000 * 27);
+        timer.schedule(timerTask, 1000 * 3);
     }
 
     public void go(View view){

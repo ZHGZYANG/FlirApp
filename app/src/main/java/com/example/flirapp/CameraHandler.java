@@ -30,7 +30,10 @@ import com.flir.thermalsdk.live.connectivity.ConnectionStatusListener;
 import com.flir.thermalsdk.live.discovery.DiscoveryEventListener;
 import com.flir.thermalsdk.live.discovery.DiscoveryFactory;
 import com.flir.thermalsdk.live.remote.Battery;
+import com.flir.thermalsdk.live.remote.Command;
+import com.flir.thermalsdk.live.remote.Property;
 import com.flir.thermalsdk.live.remote.RemoteControl;
+import com.flir.thermalsdk.live.remote.Calibration;
 import com.flir.thermalsdk.live.streaming.ThermalImageStreamListener;
 
 import org.jetbrains.annotations.Nullable;
@@ -257,6 +260,12 @@ class CameraHandler {
             }
         }
     };
+
+    public void calibration(){
+        Command command=camera.getRemoteControl().getCalibration().nuc();
+        command.executeSync();
+//        return camera.getRemoteControl().getCalibration().autoAdjust();
+    }
 
     public boolean battery() {
         RemoteControl remoteControl = camera.getRemoteControl();

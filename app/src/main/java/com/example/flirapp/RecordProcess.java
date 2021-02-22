@@ -382,19 +382,19 @@ public class RecordProcess extends AppCompatActivity {
             double tempRightP2 = thermalImage.getValueAt(new Point(320, 330)) - tempOutside;
             double tempRightP3 = thermalImage.getValueAt(new Point(377, 330)) - tempOutside;
 
-            if (tempLeftP1 > 2 && tempLeftP2 > 2 && tempLeftP3 > 2 && tempRightP1 > 2 && tempRightP2 > 2 && tempRightP3 > 2) {
+//            if (tempLeftP1 > 2 && tempLeftP2 > 2 && tempLeftP3 > 2 && tempRightP1 > 2 && tempRightP2 > 2 && tempRightP3 > 2) {
             validationPassed = true;
             runOnUiThread(() -> {
                 fab.setVisibility(View.VISIBLE);
             });
-            } else {
-                validationPassed = false;
-                runOnUiThread(() -> {
-                    if (isVideoRecord)
-                        fab.performClick();
-                    fab.setVisibility(View.INVISIBLE);
-                });
-            }
+//            } else {
+//                validationPassed = false;
+//                runOnUiThread(() -> {
+//                    if (isVideoRecord)
+//                        fab.performClick();
+//                    fab.setVisibility(View.INVISIBLE);
+//                });
+//            }
 
             //Following: average temperature calculation
             double[] tempLeft1 = thermalImage.getValues(new Rectangle(87, 215, 91, 50));
