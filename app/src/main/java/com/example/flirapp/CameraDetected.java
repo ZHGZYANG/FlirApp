@@ -3,6 +3,7 @@ package com.example.flirapp;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.os.Bundle;
@@ -25,12 +26,15 @@ import com.flir.thermalsdk.live.discovery.DiscoveryEventListener;
 import com.flir.thermalsdk.log.ThermalLog;
 
 import java.io.IOException;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.LinkedBlockingQueue;
 
 public class CameraDetected extends AppCompatActivity {
     private static final String TAG = "CameraDetected";
+    public static List<Activity> activityList = new LinkedList();
 
     //Handles Android permission for eg Network
     private PermissionHandler permissionHandler;
@@ -55,7 +59,7 @@ public class CameraDetected extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_camera_detected);
-
+        CameraDetected.activityList.add(this);
         ThermalLog.LogLevel enableLoggingInDebug = BuildConfig.DEBUG ? ThermalLog.LogLevel.DEBUG : ThermalLog.LogLevel.NONE;
 
         ThermalSdkAndroid.init(getApplicationContext(), enableLoggingInDebug);
@@ -196,7 +200,7 @@ public class CameraDetected extends AppCompatActivity {
         if (identity == null) {
             Log.d(TAG, "connect(), can't connect, no camera available");
             runOnUiThread(() -> {
-                showMessage.show("Can't connect, no camera available!");
+                showMessage.show("No camera detected. If you have plugged in, please wait.");
             });
             return;
         }

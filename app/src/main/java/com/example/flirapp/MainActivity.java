@@ -2,6 +2,7 @@ package com.example.flirapp;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.os.Bundle;
@@ -22,13 +23,14 @@ import com.flir.thermalsdk.live.discovery.DiscoveryEventListener;
 import com.flir.thermalsdk.log.ThermalLog;
 
 import java.io.IOException;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.LinkedBlockingQueue;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -40,18 +42,11 @@ public class MainActivity extends AppCompatActivity {
             public void run() {
                 Intent intent = new Intent(MainActivity.this, DiscoverCamera.class);
                 startActivity(intent);
-
-//                MainActivity.this.finish();
+                MainActivity.this.finish();
             }
         };
-        timer.schedule(timerTask, 1000*5);
+        timer.schedule(timerTask, 1000*3);
 
 
     }
-
-    public void goReady(View view){
-        Intent intent = new Intent(MainActivity.this, DiscoverCamera.class);
-        startActivity(intent);
-    }
-
 }

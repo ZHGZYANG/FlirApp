@@ -10,6 +10,7 @@ import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.Chronometer;
+import android.widget.TextView;
 
 import com.flir.thermalsdk.live.remote.Property;
 
@@ -18,9 +19,8 @@ import java.util.TimerTask;
 
 public class CalibrationTimer extends AppCompatActivity {
     private CameraHandler cameraHandler;
-
+    private TextView battery;
     private Chronometer warmtimer;
-    private Button button995;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -29,13 +29,18 @@ public class CalibrationTimer extends AppCompatActivity {
 
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         warmtimer = findViewById(R.id.warmtimer);
-        button995=findViewById(R.id.button995);
+        battery=findViewById(R.id.batteryCaliration);
     }
 
+    @SuppressLint("SetTextI18n")
     @Override
     protected void onStart() {
 
         super.onStart();
+        runOnUiThread(() -> {
+            battery.setText(cameraHandler.batteryPercent().toString() + "%");
+        });
+
         warmtimer.setCountDown(true);
         warmtimer.setBase(SystemClock.elapsedRealtime() + 300000);
 //        warmtimer.setBase(SystemClock.elapsedRealtime() + 10000);

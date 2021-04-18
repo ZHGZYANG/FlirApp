@@ -16,21 +16,22 @@ public class DiscoverCamera extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_discover_camera);
 
-//        Timer timer = new Timer();
-//        TimerTask timerTask = new TimerTask() {
-//            @Override
-//            public void run() {
-//                Intent intent = new Intent(DiscoverCamera.this, CameraDetected.class);
-//                startActivity(intent);
-//                DiscoverCamera.this.finish();
-//            }
-//        };
-//        timer.schedule(timerTask, 1000*3);
+        Timer timer = new Timer();
+        TimerTask timerTask = new TimerTask() {
+            @Override
+            public void run() {
+                Intent intent = new Intent(DiscoverCamera.this, CameraDetected.class);
+                startActivity(intent);
+                DiscoverCamera.this.finish();
+            }
+        };
+        timer.schedule(timerTask, 1000*3);
     }
 
 
-    public void goReady(View view){
-        Intent intent = new Intent(DiscoverCamera.this, CameraDetected.class);
-        startActivity(intent);
-    }
+//    public void goReady(View view){
+//        Intent intent = new Intent(DiscoverCamera.this, CameraDetected.class);
+//        startActivity(intent);
+//        DiscoverCamera.this.finish();
+//    }
 }

@@ -3,11 +3,12 @@
     <string name="welcome">Welcome to the Smart Surveillance System S3</string>
     <string name="plug_message">Please plug in your FLIR ONE Pro camera to bottom of device</string>
     <string name="camera_discover">Please turn camera on</string>
-    <string name="camera_detected">Please wait while the camera is detected</string>
+    <string name="camera_detected">Please wait while the camera is detected and enable auto-rotate</string>
     <string name="ready">Ready!</string>
     <string name="camera_charge">Please charge your camera!</string>
-    <string name="timer_message1">for 5 minutes do nothing but relax and sit comfortably</string>
+    <string name="timer_message1">For 5 minutes do nothing but relax and sit comfortably</string>
     <string name="timer_message2">Keep your phone and camera connected and powered on.</string>
+    <string name="timer_message3">On the next screen, turn the phone upside down and record your video.</string>
     <string name="title_text">FLIR ONE Sample application</string>
     <string name="sdk_version_text">Thermal SDK version %1$s</string>
     <string name="connect_f1_text">Connect\nFLIR ONE</string>
@@ -27,5 +28,13 @@
     <string name="connect">Connect</string>
     <string name="next">next</string>
     <string name="instruction">Click to record videos\n Long press to take a photo</string>
+    <string name="gallery">Gallery</string>
+    <string name="auto_rotation">Please enable auto-rotate</string>
+    <string name="returnToLast">Return</string>
+    <string name="ValidationOptions">Validation</string>
+    <string name="FullValidation">Full</string>
+    <string name="LeftSide">Left</string>
+    <string name="RightSide">Right</string>
+    <string name="Disable">Disable</string>
 
 </resources>
